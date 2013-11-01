@@ -1,0 +1,32 @@
+#!/bin/bash
+# Script to run a command across multiple machines
+
+if [ -z "$1" ]; then 
+    echo "usage: multissh \"somehost\" \"ls -lnha\""; 
+    exit 0;
+fi
+
+# Global options
+TIMEOUT=10
+ERRLOG=/tmp/remote-err-$$.log
+OUTLOG=/tmp/remote-out-$$.log
+
+# Extract the command line
+
+MACHINES=$1;shift
+COMMAND=$1;shift
+
+for machine in $MACHINES
+do
+    echo $machine >>$OUTLOG.$machine
+    ssh -oConnectTimeout=$TIMEOUT $machine $COMMAND >>$OUTLOG.$machine
+    2>>$ERRLOG.$machine &
+done
+
+# Wait for children to finish
+
+wait
+
+cat $OUTLOG.*
+cat $ERRLOG.* >&2
+rm -f $OUTLOG.* $ERRLOG.*
